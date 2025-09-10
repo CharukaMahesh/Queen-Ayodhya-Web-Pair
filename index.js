@@ -4,15 +4,14 @@ const path = require("path");
 const bodyParser = require("body-parser");
 const PORT = process.env.PORT || 8000;
 const { makeWASocket, useMultiFileAuthState, delay } = require("@whiskeysockets/baileys");
+const SessionManager = require('./sessionManager');
 
-__path = process.cwd();
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// Store active connections
+const sessionManager = new SessionManager();
 const activeConnections = new Map();
 
-// WhatsApp connection function
+// ... [keep the rest of your index.js code] ...
+
+// Modify the connection creation function to handle MEGA saving
 async function createWhatsAppConnection(sessionId, phoneNumber = null) {
     try {
         const { state, saveCreds } = await useMultiFileAuthState(`./sessions/${sessionId}`);
@@ -25,42 +24,37 @@ async function createWhatsAppConnection(sessionId, phoneNumber = null) {
 
         sock.ev.on('creds.update', saveCreds);
 
-        sock.ev.on('connection.update', (update) => {
+        sock.ev.on('connection.update', async (update) => {
             const connection = activeConnections.get(sessionId);
             if (connection) {
                 if (update.qr) {
                     connection.qr = update.qr;
                     connection.connected = false;
                 }
+                
                 if (update.connection === 'open') {
                     connection.connected = true;
                     connection.user = sock.user;
+                    
+                    // ✅ SAVE TO MEGA WHEN CONNECTED!
+                    try {
+                        if (phoneNumber) {
+                            const megaUrl = await sessionManager.saveSessionToMega(sessionId, phoneNumber);
+                            connection.megaUrl = megaUrl;
+                            console.log('Session successfully saved to MEGA');
+                        }
+                    } catch (error) {
+                        console.error('MEGA save failed:', error);
+                    }
                 }
+                
                 if (update.connection === 'close') {
                     connection.connected = false;
                 }
             }
         });
 
-        // Request pairing code if number provided
-        let pairingCode = null;
-        if (phoneNumber && !sock.authState.creds.registered) {
-            await delay(1000);
-            pairingCode = await sock.requestPairingCode(phoneNumber);
-        }
-
-        const connectionInfo = {
-            sock,
-            saveCreds,
-            connected: false,
-            qr: null,
-            pairingCode,
-            createdAt: Date.now()
-        };
-
-        activeConnections.set(sessionId, connectionInfo);
-
-        return connectionInfo;
+        // ... [rest of the function] ...
 
     } catch (error) {
         console.error('Connection error:', error);
@@ -68,107 +62,15 @@ async function createWhatsAppConnection(sessionId, phoneNumber = null) {
     }
 }
 
-// Routes
-app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "pair.html"));
-});
-
-// Generate pairing code
-app.get("/code", async (req, res) => {
-    const { number } = req.query;
-    
-    if (!number) {
-        return res.status(400).json({ error: "Phone number required" });
-    }
-
-    const sessionId = `pair-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
-    try {
-        const connection = await createWhatsAppConnection(sessionId, number);
-        
-        // Wait a bit for the pairing code to generate
-        await delay(2000);
-        
-        if (connection.pairingCode) {
-            res.json({ 
-                code: connection.pairingCode,
-                sessionId: sessionId
-            });
-        } else {
-            res.status(500).json({ error: "Failed to generate pairing code" });
-        }
-        
-    } catch (error) {
-        console.error("Pairing code error:", error);
-        res.status(500).json({ error: "Failed to generate code" });
-    }
-});
-
-// Generate QR code
-app.get("/qr", async (req, res) => {
-    const sessionId = `qr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
-    try {
-        const connection = await createWhatsAppConnection(sessionId);
-        
-        // Wait for QR code to generate
-        let qrCode = null;
-        let attempts = 0;
-        
-        while (!qrCode && attempts < 10) {
-            await delay(500);
-            qrCode = activeConnections.get(sessionId)?.qr;
-            attempts++;
-        }
-        
-        if (qrCode) {
-            res.json({ 
-                qr: qrCode,
-                sessionId: sessionId
-            });
-        } else {
-            res.status(500).json({ error: "Failed to generate QR code" });
-        }
-        
-    } catch (error) {
-        console.error("QR code error:", error);
-        res.status(500).json({ error: "Failed to generate QR code" });
-    }
-});
-
-// Check connection status
-app.get("/status/:sessionId", (req, res) => {
+// Add cleanup endpoint
+app.post('/cleanup/:sessionId', async (req, res) => {
     const { sessionId } = req.params;
-    const connection = activeConnections.get(sessionId);
-    
-    if (connection) {
-        res.json({
-            connected: connection.connected,
-            qr: connection.qr,
-            user: connection.user
-        });
-    } else {
-        res.status(404).json({ error: "Session not found" });
+    try {
+        await sessionManager.cleanupSession(sessionId);
+        res.json({ success: true, message: 'Session cleaned up' });
+    } catch (error) {
+        res.status(500).json({ error: 'Cleanup failed' });
     }
 });
 
-// Cleanup old sessions periodically
-setInterval(() => {
-    const now = Date.now();
-    for (const [sessionId, connection] of activeConnections.entries()) {
-        if (now - connection.createdAt > 300000) { // 5 minutes
-            try {
-                connection.sock.ws.close();
-                activeConnections.delete(sessionId);
-            } catch (error) {
-                console.error("Cleanup error:", error);
-            }
-        }
-    }
-}, 60000); // Check every minute
-
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`📱 Pairing endpoint: http://localhost:${PORT}/code?number=YOUR_NUMBER`);
-    console.log(`📟 QR endpoint: http://localhost:${PORT}/qr`);
-});
+// ... [rest of your server code] ...
