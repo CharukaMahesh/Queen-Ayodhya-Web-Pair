@@ -8,14 +8,14 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <style>
     :root {
-      --primary: #25D366;
-      --primary-dark: #128C7E;
-      --secondary: #5458ED;
-      --light: #F5F5F5;
+      --whatsapp-green: #25D366;
+      --whatsapp-dark-green: #128C7E;
+      --whatsapp-light-green: #dcf8c6;
+      --whatsapp-blue: #34B7F1;
       --dark: #333333;
+      --light: #FFFFFF;
       --gray: #666666;
-      --danger: #DC3545;
-      --warning: #FFC107;
+      --light-gray: #f0f0f0;
     }
 
     * {
@@ -30,74 +30,93 @@
       justify-content: center;
       align-items: center;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      background: linear-gradient(135deg, var(--whatsapp-green) 0%, var(--whatsapp-dark-green) 100%);
       padding: 20px;
     }
 
     .container {
       width: 100%;
       max-width: 500px;
-      background: white;
-      border-radius: 15px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      background: var(--light);
+      border-radius: 20px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
       overflow: hidden;
     }
 
     .header {
-      background: var(--primary-dark);
-      color: white;
-      padding: 30px 20px;
+      background: var(--whatsapp-dark-green);
+      color: var(--light);
+      padding: 40px 20px;
       text-align: center;
+      position: relative;
     }
 
     .logo {
-      width: 80px;
-      height: 80px;
-      background: white;
+      width: 100px;
+      height: 100px;
+      background: var(--light);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto 15px;
-      border: 4px solid var(--primary);
+      margin: 0 auto 20px;
+      border: 5px solid var(--whatsapp-green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
     }
 
     .logo i {
-      font-size: 36px;
-      color: var(--primary-dark);
+      font-size: 50px;
+      color: var(--whatsapp-dark-green);
     }
 
     .title {
-      font-size: 24px;
+      font-size: 28px;
       font-weight: bold;
-      margin-bottom: 5px;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      opacity: 0.9;
     }
 
     .content {
-      padding: 30px;
+      padding: 40px;
     }
 
     .tabs {
       display: flex;
-      gap: 10px;
-      margin-bottom: 25px;
+      gap: 15px;
+      margin-bottom: 30px;
+      background: var(--light-gray);
+      border-radius: 15px;
+      padding: 5px;
     }
 
     .tab {
       flex: 1;
-      padding: 15px;
-      border: 2px solid var(--primary);
-      border-radius: 10px;
-      background: white;
+      padding: 20px;
+      border: none;
+      border-radius: 12px;
+      background: transparent;
       cursor: pointer;
       text-align: center;
       font-weight: bold;
+      font-size: 16px;
       transition: all 0.3s ease;
+      color: var(--gray);
     }
 
     .tab.active {
-      background: var(--primary);
-      color: white;
+      background: var(--whatsapp-green);
+      color: var(--light);
+      box-shadow: 0 5px 15px rgba(37, 211, 102, 0.3);
     }
 
     .tab:hover {
@@ -105,78 +124,95 @@
     }
 
     .form-group {
-      margin-bottom: 20px;
+      margin-bottom: 25px;
     }
 
     .label {
       display: block;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
       color: var(--dark);
-      font-weight: 500;
+      font-weight: 600;
+      font-size: 16px;
     }
 
     .input {
       width: 100%;
-      padding: 15px;
-      border: 2px solid #ddd;
-      border-radius: 8px;
-      font-size: 16px;
-      transition: border-color 0.3s ease;
+      padding: 18px;
+      border: 3px solid #e0e0e0;
+      border-radius: 12px;
+      font-size: 18px;
+      transition: all 0.3s ease;
+      background: var(--light);
     }
 
     .input:focus {
       outline: none;
-      border-color: var(--primary);
+      border-color: var(--whatsapp-green);
+      box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+    }
+
+    .input::placeholder {
+      color: #999;
     }
 
     .btn {
       width: 100%;
-      padding: 15px;
-      background: var(--primary);
-      color: white;
+      padding: 20px;
+      background: var(--whatsapp-green);
+      color: var(--light);
       border: none;
-      border-radius: 8px;
-      font-size: 16px;
+      border-radius: 12px;
+      font-size: 18px;
       font-weight: bold;
       cursor: pointer;
-      transition: background-color 0.3s ease;
+      transition: all 0.3s ease;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      gap: 12px;
+      box-shadow: 0 5px 15px rgba(37, 211, 102, 0.3);
     }
 
     .btn:hover {
-      background: var(--primary-dark);
+      background: var(--whatsapp-dark-green);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(37, 211, 102, 0.4);
+    }
+
+    .btn:active {
+      transform: translateY(0);
     }
 
     .btn:disabled {
       background: var(--gray);
       cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
     }
 
-    .btn.secondary {
-      background: var(--secondary);
+    .btn.qr-btn {
+      background: var(--whatsapp-blue);
+      box-shadow: 0 5px 15px rgba(52, 183, 241, 0.3);
     }
 
-    .btn.secondary:hover {
-      background: #3f43c7;
+    .btn.qr-btn:hover {
+      background: #2a9cd6;
     }
 
     .loading {
       text-align: center;
-      margin: 20px 0;
+      margin: 30px 0;
       display: none;
     }
 
     .spinner {
-      width: 30px;
-      height: 30px;
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid var(--primary);
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid var(--whatsapp-green);
       border-radius: 50%;
       animation: spin 1s linear infinite;
-      margin: 0 auto;
+      margin: 0 auto 15px;
     }
 
     @keyframes spin {
@@ -186,100 +222,128 @@
 
     .qr-container {
       text-align: center;
-      margin: 20px 0;
+      margin: 30px 0;
       display: none;
     }
 
     #qrcode {
       margin: 0 auto;
-      padding: 20px;
-      background: white;
-      border-radius: 10px;
-      border: 2px solid #ddd;
+      padding: 25px;
+      background: var(--light);
+      border-radius: 15px;
+      border: 3px solid var(--whatsapp-light-green);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     }
 
     .result {
-      background: #e8f5e9;
-      padding: 20px;
-      border-radius: 10px;
-      border-left: 4px solid var(--primary);
-      margin: 20px 0;
+      background: var(--whatsapp-light-green);
+      padding: 25px;
+      border-radius: 15px;
+      border-left: 5px solid var(--whatsapp-green);
+      margin: 25px 0;
       text-align: center;
       display: none;
     }
 
     .code {
-      font-size: 24px;
+      font-size: 28px;
       font-weight: bold;
       color: var(--dark);
-      margin: 10px 0;
-      padding: 15px;
-      background: white;
-      border-radius: 8px;
-      border: 2px dashed var(--primary);
+      margin: 15px 0;
+      padding: 20px;
+      background: var(--light);
+      border-radius: 12px;
+      border: 3px dashed var(--whatsapp-green);
       cursor: pointer;
+      transition: all 0.3s ease;
     }
 
     .code:hover {
-      background: #f0fff0;
+      background: #f8fff8;
+      transform: scale(1.02);
     }
 
     .status {
-      padding: 15px;
-      border-radius: 8px;
-      margin: 15px 0;
+      padding: 20px;
+      border-radius: 12px;
+      margin: 20px 0;
       text-align: center;
       font-weight: bold;
+      font-size: 16px;
       display: none;
     }
 
     .status.success {
       background: #e8f5e8;
-      color: var(--primary-dark);
-      border: 1px solid #c8e6c9;
+      color: var(--whatsapp-dark-green);
+      border: 2px solid #c8e6c9;
     }
 
     .status.error {
       background: #ffebee;
-      color: var(--danger);
-      border: 1px solid #ffcdd2;
+      color: #d32f2f;
+      border: 2px solid #ffcdd2;
     }
 
     .status.warning {
       background: #fff3e0;
-      color: var(--warning);
-      border: 1px solid #ffe0b2;
+      color: #f57c00;
+      border: 2px solid #ffe0b2;
     }
 
     .instructions {
       background: #e3f2fd;
-      padding: 15px;
-      border-radius: 8px;
-      border-left: 4px solid var(--secondary);
-      margin: 20px 0;
+      padding: 20px;
+      border-radius: 15px;
+      border-left: 5px solid var(--whatsapp-blue);
+      margin: 25px 0;
     }
 
     .instructions h4 {
-      color: var(--secondary);
-      margin-bottom: 10px;
+      color: var(--whatsapp-blue);
+      margin-bottom: 15px;
+      font-size: 18px;
     }
 
     .instructions ol {
-      padding-left: 20px;
+      padding-left: 25px;
       color: var(--gray);
     }
 
     .instructions li {
-      margin-bottom: 8px;
-      font-size: 14px;
+      margin-bottom: 12px;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .instructions strong {
+      color: var(--dark);
+    }
+
+    .countdown {
+      text-align: center;
+      font-size: 16px;
+      font-weight: bold;
+      color: #f57c00;
+      margin: 15px 0;
     }
 
     @media (max-width: 480px) {
       .content {
-        padding: 20px;
+        padding: 25px;
       }
       .tabs {
         flex-direction: column;
+      }
+      .title {
+        font-size: 24px;
+      }
+      .logo {
+        width: 80px;
+        height: 80px;
+      }
+      .logo i {
+        font-size: 40px;
       }
     }
   </style>
@@ -291,22 +355,22 @@
         <i class="fab fa-whatsapp"></i>
       </div>
       <h1 class="title">WhatsApp Linking</h1>
-      <p>Connect your WhatsApp account</p>
+      <p class="subtitle">Connect your WhatsApp account securely</p>
     </div>
 
     <div class="content">
       <div class="tabs">
-        <div class="tab active" onclick="showTab('qr')">
+        <button class="tab active" onclick="showTab('qr')">
           <i class="fas fa-qrcode"></i> QR Code
-        </div>
-        <div class="tab" onclick="showTab('pair')">
+        </button>
+        <button class="tab" onclick="showTab('pair')">
           <i class="fas fa-code"></i> Pairing Code
-        </div>
+        </button>
       </div>
 
       <!-- QR Code Tab -->
       <div id="qrTab">
-        <button class="btn" onclick="generateQRCode()">
+        <button class="btn qr-btn" onclick="generateQRCode()">
           <i class="fas fa-camera"></i> Generate QR Code
         </button>
 
@@ -318,6 +382,7 @@
         <div class="qr-container" id="qrContainer">
           <h3>Scan this QR Code</h3>
           <div id="qrcode"></div>
+          <div class="countdown" id="qrCountdown">⏰ Expires in: 20 seconds</div>
           <p>WhatsApp → Linked Devices → Link a Device</p>
         </div>
 
@@ -327,11 +392,19 @@
       <!-- Pairing Code Tab -->
       <div id="pairTab" style="display: none;">
         <div class="form-group">
-          <label class="label">WhatsApp Number</label>
-          <input type="tel" id="phoneNumber" class="input" placeholder="+94701234567">
+          <label class="label">
+            <i class="fas fa-phone"></i> WhatsApp Number
+          </label>
+          <input 
+            type="tel" 
+            id="phoneNumber" 
+            class="input" 
+            placeholder="+94701234567"
+            inputmode="numeric"
+          >
         </div>
 
-        <button class="btn secondary" onclick="generatePairCode()">
+        <button class="btn" onclick="generatePairCode()">
           <i class="fas fa-key"></i> Generate Pairing Code
         </button>
 
@@ -345,19 +418,22 @@
           <div class="code" id="pairingCode" onclick="copyCode()">
             Code will appear here
           </div>
-          <p>Click to copy • Expires in 20 seconds</p>
+          <div class="countdown" id="pairCountdown">⏰ Expires in: 20 seconds</div>
+          <p>Click to copy • Enter in WhatsApp immediately</p>
         </div>
 
         <div class="status" id="pairStatus"></div>
       </div>
 
       <div class="instructions">
-        <h4>📋 How to Link:</h4>
+        <h4>📋 How to Link Your WhatsApp:</h4>
         <ol>
-          <li>Open WhatsApp on your phone</li>
+          <li>Open <strong>WhatsApp</strong> on your phone</li>
           <li>Go to <strong>Settings → Linked Devices → Link a Device</strong></li>
-          <li>Scan QR code or enter pairing code</li>
-          <li>Keep this page open during the process</li>
+          <li>Choose either <strong>QR Code</strong> or <strong>Pairing Code</strong> method</li>
+          <li>Your session will be automatically saved to MEGA cloud</li>
+          <li>You'll receive the session ID via WhatsApp message</li>
+          <li><strong>Keep this page open</strong> during the linking process</li>
         </ol>
       </div>
     </div>
@@ -365,9 +441,13 @@
 
   <script>
     let currentSessionId = null;
+    let currentTab = 'qr';
     let statusInterval = null;
+    let countdownInterval = null;
 
     function showTab(tabName) {
+      currentTab = tabName;
+      
       // Update tabs
       document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
       event.target.classList.add('active');
@@ -377,60 +457,101 @@
       document.getElementById('pairTab').style.display = tabName === 'pair' ? 'block' : 'none';
       
       // Clear any existing intervals
-      if (statusInterval) {
-        clearInterval(statusInterval);
-        statusInterval = null;
-      }
+      clearIntervals();
+    }
+
+    function clearIntervals() {
+      if (statusInterval) clearInterval(statusInterval);
+      if (countdownInterval) clearInterval(countdownInterval);
+      statusInterval = null;
+      countdownInterval = null;
     }
 
     function showStatus(message, type, tab) {
       const statusDiv = document.getElementById(tab + 'Status');
       statusDiv.textContent = message;
-      statusDiv.className = `status ${type}`;
+      statusDiv.className = `status status-${type}`;
       statusDiv.style.display = 'block';
+      
+      // Auto-hide success messages after 5 seconds
+      if (type === 'success') {
+        setTimeout(() => {
+          statusDiv.style.display = 'none';
+        }, 5000);
+      }
+    }
+
+    function startCountdown(seconds, elementId) {
+      let timeLeft = seconds;
+      const countdownElement = document.getElementById(elementId);
+      
+      if (countdownInterval) clearInterval(countdownInterval);
+      
+      countdownInterval = setInterval(() => {
+        timeLeft--;
+        countdownElement.textContent = `⏰ Expires in: ${timeLeft} seconds`;
+        
+        if (timeLeft <= 5) {
+          countdownElement.style.color = '#d32f2f';
+        } else if (timeLeft <= 10) {
+          countdownElement.style.color = '#f57c00';
+        }
+        
+        if (timeLeft <= 0) {
+          clearInterval(countdownInterval);
+          countdownElement.textContent = '⚠️ Code expired! Generate a new one.';
+          showStatus('Code expired. Please generate a new one.', 'error', currentTab);
+        }
+      }, 1000);
     }
 
     async function generateQRCode() {
+      const btn = document.querySelector('#qrTab .btn');
       const loading = document.getElementById('qrLoading');
       const qrContainer = document.getElementById('qrContainer');
       
+      btn.disabled = true;
       loading.style.display = 'block';
       qrContainer.style.display = 'none';
       showStatus('', '', 'qr');
+      clearIntervals();
       
       try {
         const response = await fetch('/qr');
         const data = await response.json();
         
-        if (data.qr) {
+        if (data.success && data.qr) {
           currentSessionId = data.sessionId;
           
           // Generate QR code
           QRCode.toCanvas(document.getElementById('qrcode'), data.qr, {
-            width: 200,
-            height: 200,
-            margin: 1
+            width: 250,
+            height: 250,
+            margin: 2
           });
           
           qrContainer.style.display = 'block';
+          startCountdown(20, 'qrCountdown');
           showStatus('Scan the QR code within WhatsApp', 'warning', 'qr');
           
           // Start checking connection status
           checkConnectionStatus();
           
         } else {
-          showStatus('Failed to generate QR code', 'error', 'qr');
+          showStatus('Failed to generate QR code. Please try again.', 'error', 'qr');
         }
       } catch (error) {
         console.error('QR error:', error);
         showStatus('Connection error. Please try again.', 'error', 'qr');
       } finally {
         loading.style.display = 'none';
+        btn.disabled = false;
       }
     }
 
     async function generatePairCode() {
       const phoneInput = document.getElementById('phoneNumber');
+      const btn = document.querySelector('#pairTab .btn');
       const loading = document.getElementById('pairLoading');
       const result = document.getElementById('pairResult');
       const rawNumber = phoneInput.value.replace(/[^0-9]/g, '');
@@ -440,36 +561,35 @@
         return;
       }
       
+      btn.disabled = true;
       loading.style.display = 'block';
       result.style.display = 'none';
       showStatus('', '', 'pair');
+      clearIntervals();
       
       try {
         const response = await fetch(`/code?number=${rawNumber}`);
         const data = await response.json();
         
-        if (data.code) {
+        if (data.success && data.code) {
           currentSessionId = data.sessionId;
           document.getElementById('pairingCode').textContent = data.code;
           result.style.display = 'block';
+          startCountdown(20, 'pairCountdown');
           showStatus('Enter this code in WhatsApp immediately!', 'warning', 'pair');
           
           // Start checking connection status
           checkConnectionStatus();
           
-          // Code expires in 20 seconds
-          setTimeout(() => {
-            showStatus('Code expired! Generate a new one.', 'error', 'pair');
-          }, 20000);
-          
         } else {
-          showStatus('Failed to generate code. Try QR code method.', 'error', 'pair');
+          showStatus('Failed to generate code. Please try again.', 'error', 'pair');
         }
       } catch (error) {
         console.error('Pair code error:', error);
         showStatus('Connection error. Please try again.', 'error', 'pair');
       } finally {
         loading.style.display = 'none';
+        btn.disabled = false;
       }
     }
 
@@ -484,8 +604,16 @@
           const status = await response.json();
           
           if (status.connected) {
-            clearInterval(statusInterval);
-            showStatus('Successfully connected to WhatsApp!', 'success', currentTab);
+            clearIntervals();
+            showStatus('✅ Successfully connected! Session saved to MEGA and sent to your WhatsApp.', 'success', currentTab);
+            
+            if (status.megaUrl) {
+              const sessionCode = status.megaUrl.replace("https://mega.nz/file/", "").split('/')[0];
+              console.log('Session saved with ID:', sessionCode);
+            }
+          } else if (status.error) {
+            showStatus('Session expired or not found. Please generate a new code.', 'error', currentTab);
+            clearIntervals();
           }
         } catch (error) {
           console.error('Status check error:', error);
@@ -494,19 +622,23 @@
     }
 
     async function copyCode() {
-      const code = document.getElementById('pairingCode').textContent;
+      const codeElement = document.getElementById('pairingCode');
+      const code = codeElement.textContent;
+      
       if (code === 'Code will appear here') return;
       
       try {
         await navigator.clipboard.writeText(code);
-        const originalText = document.getElementById('pairingCode').textContent;
-        document.getElementById('pairingCode').innerHTML = '<i class="fas fa-check"></i> Copied!';
+        const originalText = codeElement.textContent;
+        codeElement.innerHTML = '<i class="fas fa-check"></i> Copied to clipboard!';
+        codeElement.style.background = '#e8f5e8';
         
         setTimeout(() => {
-          document.getElementById('pairingCode').textContent = originalText;
+          codeElement.textContent = originalText;
+          codeElement.style.background = '';
         }, 2000);
       } catch (err) {
-        alert('Please copy the code manually');
+        showStatus('Please copy the code manually', 'warning', 'pair');
       }
     }
 
@@ -516,11 +648,31 @@
       if (!value.startsWith('+') && value.length > 2) {
         value = '+' + value;
       }
-      e.target.value = value;
+      
+      // Auto-format with spaces for readability
+      if (value.startsWith('+')) {
+        const numbers = value.slice(1);
+        if (numbers.length <= 3) {
+          e.target.value = `+${numbers}`;
+        } else if (numbers.length <= 7) {
+          e.target.value = `+${numbers.slice(0, 3)} ${numbers.slice(3)}`;
+        } else {
+          e.target.value = `+${numbers.slice(0, 3)} ${numbers.slice(3, 7)} ${numbers.slice(7, 11)}`;
+        }
+      } else {
+        e.target.value = value;
+      }
     });
 
-    // Initialize
-    let currentTab = 'qr';
+    // Enter key support
+    document.getElementById('phoneNumber').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        generatePairCode();
+      }
+    });
+
+    // Initialize with QR tab
+    showTab('qr');
   </script>
 </body>
 </html>
