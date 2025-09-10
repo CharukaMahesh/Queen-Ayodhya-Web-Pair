@@ -3,84 +3,172 @@ const app = express();
 const path = require("path");
 const bodyParser = require("body-parser");
 const PORT = process.env.PORT || 8000;
-const { makeWASocket, useMultiFileAuthState } = require("@whiskeysockets/baileys");
+const { makeWASocket, useMultiFileAuthState, delay } = require("@whiskeysockets/baileys");
 
 __path = process.cwd();
-let code = require("./pair");
-
-app.use("/code", code);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Store active sessions
-let activeSessions = new Map();
+// Store active connections
+const activeConnections = new Map();
 
-app.use("/", async (req, res, next) => {
-  res.sendFile(path.join(__path, "pair.html"));
+// WhatsApp connection function
+async function createWhatsAppConnection(sessionId, phoneNumber = null) {
+    try {
+        const { state, saveCreds } = await useMultiFileAuthState(`./sessions/${sessionId}`);
+        
+        const sock = makeWASocket({
+            auth: state,
+            printQRInTerminal: false,
+            logger: { level: 'silent' }
+        });
+
+        sock.ev.on('creds.update', saveCreds);
+
+        sock.ev.on('connection.update', (update) => {
+            const connection = activeConnections.get(sessionId);
+            if (connection) {
+                if (update.qr) {
+                    connection.qr = update.qr;
+                    connection.connected = false;
+                }
+                if (update.connection === 'open') {
+                    connection.connected = true;
+                    connection.user = sock.user;
+                }
+                if (update.connection === 'close') {
+                    connection.connected = false;
+                }
+            }
+        });
+
+        // Request pairing code if number provided
+        let pairingCode = null;
+        if (phoneNumber && !sock.authState.creds.registered) {
+            await delay(1000);
+            pairingCode = await sock.requestPairingCode(phoneNumber);
+        }
+
+        const connectionInfo = {
+            sock,
+            saveCreds,
+            connected: false,
+            qr: null,
+            pairingCode,
+            createdAt: Date.now()
+        };
+
+        activeConnections.set(sessionId, connectionInfo);
+
+        return connectionInfo;
+
+    } catch (error) {
+        console.error('Connection error:', error);
+        throw error;
+    }
+}
+
+// Routes
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "pair.html"));
 });
 
-// New endpoint to start QR session
-app.post("/start-session", async (req, res) => {
-  try {
-    const sessionId = Date.now().toString(); // Simple session ID
-    const { state, saveCreds } = await useMultiFileAuthState(`./sessions/${sessionId}`);
+// Generate pairing code
+app.get("/code", async (req, res) => {
+    const { number } = req.query;
     
-    const sock = makeWASocket({
-      auth: state,
-      printQRInTerminal: false,
-      logger: { level: 'silent' }
-    });
+    if (!number) {
+        return res.status(400).json({ error: "Phone number required" });
+    }
+
+    const sessionId = `pair-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
-    // Store session
-    activeSessions.set(sessionId, { sock, saveCreds });
+    try {
+        const connection = await createWhatsAppConnection(sessionId, number);
+        
+        // Wait a bit for the pairing code to generate
+        await delay(2000);
+        
+        if (connection.pairingCode) {
+            res.json({ 
+                code: connection.pairingCode,
+                sessionId: sessionId
+            });
+        } else {
+            res.status(500).json({ error: "Failed to generate pairing code" });
+        }
+        
+    } catch (error) {
+        console.error("Pairing code error:", error);
+        res.status(500).json({ error: "Failed to generate code" });
+    }
+});
+
+// Generate QR code
+app.get("/qr", async (req, res) => {
+    const sessionId = `qr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
-    sock.ev.on('connection.update', (update) => {
-      if (update.qr) {
-        // QR code available for scanning
-        activeSessions.get(sessionId).qr = update.qr;
-      }
-      
-      if (update.connection === 'open') {
-        // Connected successfully
-        activeSessions.get(sessionId).connected = true;
-      }
-    });
-    
-    sock.ev.on('creds.update', saveCreds);
-    
-    // Wait a bit for QR to generate
-    setTimeout(() => {
-      const session = activeSessions.get(sessionId);
-      res.json({
-        qr: session.qr,
-        connected: session.connected || false,
-        sessionId: sessionId
-      });
-    }, 1000);
-    
-  } catch (error) {
-    console.error('Session error:', error);
-    res.status(500).json({ error: 'Failed to create session' });
-  }
+    try {
+        const connection = await createWhatsAppConnection(sessionId);
+        
+        // Wait for QR code to generate
+        let qrCode = null;
+        let attempts = 0;
+        
+        while (!qrCode && attempts < 10) {
+            await delay(500);
+            qrCode = activeConnections.get(sessionId)?.qr;
+            attempts++;
+        }
+        
+        if (qrCode) {
+            res.json({ 
+                qr: qrCode,
+                sessionId: sessionId
+            });
+        } else {
+            res.status(500).json({ error: "Failed to generate QR code" });
+        }
+        
+    } catch (error) {
+        console.error("QR code error:", error);
+        res.status(500).json({ error: "Failed to generate QR code" });
+    }
 });
 
 // Check connection status
-app.get("/connection-status", (req, res) => {
-  // This would need proper session management
-  // For simplicity, check first session
-  const session = Array.from(activeSessions.values())[0];
-  if (session) {
-    res.json({
-      connected: session.connected || false,
-      qr: session.qr || null
-    });
-  } else {
-    res.json({ connected: false, qr: null });
-  }
+app.get("/status/:sessionId", (req, res) => {
+    const { sessionId } = req.params;
+    const connection = activeConnections.get(sessionId);
+    
+    if (connection) {
+        res.json({
+            connected: connection.connected,
+            qr: connection.qr,
+            user: connection.user
+        });
+    } else {
+        res.status(404).json({ error: "Session not found" });
+    }
 });
+
+// Cleanup old sessions periodically
+setInterval(() => {
+    const now = Date.now();
+    for (const [sessionId, connection] of activeConnections.entries()) {
+        if (now - connection.createdAt > 300000) { // 5 minutes
+            try {
+                connection.sock.ws.close();
+                activeConnections.delete(sessionId);
+            } catch (error) {
+                console.error("Cleanup error:", error);
+            }
+        }
+    }
+}, 60000); // Check every minute
 
 app.listen(PORT, () => {
-  console.log(`⏩ Server running on http://localhost:${PORT}`);
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`📱 Pairing endpoint: http://localhost:${PORT}/code?number=YOUR_NUMBER`);
+    console.log(`📟 QR endpoint: http://localhost:${PORT}/qr`);
 });
-
-module.exports = app;
