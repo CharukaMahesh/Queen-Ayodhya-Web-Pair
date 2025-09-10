@@ -1,27 +1,21 @@
 {
-"name": "Robin-web-pair",
-    "version": "0.0.1",
-    "description": "A multi functional whatsapp bot Web paircode.",
-    "main": "index.js",
-    "scripts": {
-      "start": "pm2 start index.js --deep-monitoring --attach --name Robin",
-      "stop": "pm2 stop robin",
-     "restart": "pm2 restart robin"
-    },
+  "name": "whatsapp-pairing-portal",
+  "version": "1.0.0",
+  "description": "WhatsApp pairing portal with MEGA cloud storage",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
   "dependencies": {
+    "express": "^4.18.2",
     "@whiskeysockets/baileys": "^6.7.9",
-    "qrcode": "^1.5.4",
-    "awesome-phonenumber": "^7.5.0",
-    "pino": "^9.9.5",
-    "phone" : "^3.1.67",
-    "body-parser": "^2.2.0",
-    "express": "^5.1.0",
-    "path": "^0.12.7",
-    "megajs": "^1.3.9",
-    "pm2": "^6.0.10",
-    "rimraf": "^6.0.1",
-    "@eslint/config-array": "^0.21.0",
-    "@eslint/object-schema": "^2.1.6",
-    "eslint": "^9.35.0"
-   }
+    "megajs": "^1.3.5",
+    "qrcode": "^1.5.3",
+    "body-parser": "^1.20.2",
+    "path": "^0.12.7"
+  },
+  "keywords": ["whatsapp", "pairing", "qr-code", "mega-cloud"],
+  "author": "Your Name",
+  "license": "MIT"
 }
