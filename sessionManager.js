@@ -25,7 +25,7 @@ class SessionManager {
 
       // Generate unique filename for MEGA
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const megaFileName = `whatsapp-session-${phoneNumber}-${timestamp}.json`;
+      const megaFileName = `whatsapp-${phoneNumber}-${timestamp}.json`;
       
       // Upload to MEGA
       const megaUrl = await uploadToMega(credsFile, megaFileName);
@@ -39,7 +39,7 @@ class SessionManager {
     }
   }
 
-  async cleanupSession(sessionId) {
+  cleanupSession(sessionId) {
     try {
       const sessionPath = path.join(this.sessionsDir, sessionId);
       if (fs.existsSync(sessionPath)) {
