@@ -4,44 +4,56 @@ const path = require("path");
 const bodyParser = require("body-parser");
 const PORT = process.env.PORT || 8000;
 const { makeWASocket, useMultiFileAuthState, delay, Browsers } = require("@whiskeysockets/baileys");
-const SessionManager = require('./sessionManager');
+const { uploadToMega } = require("./mega");
+const fs = require("fs");
 
-const sessionManager = new SessionManager();
-const activeConnections = new Map();
+// Create sessions directory
+const sessionsDir = './sessions';
+if (!fs.existsSync(sessionsDir)) {
+    fs.mkdirSync(sessionsDir, { recursive: true });
+}
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Serve static files
-app.use(express.static(path.join(__dirname, 'public')));
+// Store active connections
+const activeConnections = new Map();
 
 // WhatsApp connection function
 async function createWhatsAppConnection(sessionId, phoneNumber = null) {
     try {
+        console.log("Creating connection for session:", sessionId);
+        
         const { state, saveCreds } = await useMultiFileAuthState(`./sessions/${sessionId}`);
         
         const sock = makeWASocket({
             auth: state,
-            printQRInTerminal: false,
-            logger: { level: 'silent' },
+            printQRInTerminal: true, // Enable terminal QR for debugging
+            logger: { level: 'error' }, // Only show errors
             browser: Browsers.macOS("Safari")
         });
 
         let pairingCode = null;
         let qrCode = null;
 
+        // Handle credentials update
         sock.ev.on('creds.update', saveCreds);
 
+        // Handle connection updates
         sock.ev.on('connection.update', async (update) => {
+            console.log("Connection update:", update);
+            
             if (update.qr) {
                 qrCode = update.qr;
                 const connection = activeConnections.get(sessionId);
                 if (connection) {
                     connection.qr = qrCode;
+                    console.log("QR code generated");
                 }
             }
             
             if (update.connection === 'open') {
+                console.log("✅ WhatsApp connected successfully!");
                 const connection = activeConnections.get(sessionId);
                 if (connection) {
                     connection.connected = true;
@@ -49,9 +61,14 @@ async function createWhatsAppConnection(sessionId, phoneNumber = null) {
                     
                     // Save session to MEGA
                     try {
-                        if (phoneNumber) {
-                            const megaUrl = await sessionManager.saveSessionToMega(sessionId, phoneNumber);
+                        const credsPath = `./sessions/${sessionId}/creds.json`;
+                        if (fs.existsSync(credsPath)) {
+                            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                            const megaFileName = `whatsapp-${phoneNumber || 'session'}-${timestamp}.json`;
+                            
+                            const megaUrl = await uploadToMega(credsPath, megaFileName);
                             connection.megaUrl = megaUrl;
+                            console.log('Session saved to MEGA:', megaUrl);
                             
                             // Send session to user via WhatsApp
                             const sessionCode = megaUrl.replace("https://mega.nz/file/", "").split('/')[0];
@@ -65,9 +82,10 @@ async function createWhatsAppConnection(sessionId, phoneNumber = null) {
                     
                     // Close connection after saving
                     setTimeout(() => {
-                        sock.ws.close();
-                        sessionManager.cleanupSession(sessionId);
-                        activeConnections.delete(sessionId);
+                        try {
+                            sock.ws.close();
+                        } catch (e) {}
+                        cleanupSession(sessionId);
                     }, 3000);
                 }
             }
@@ -75,8 +93,14 @@ async function createWhatsAppConnection(sessionId, phoneNumber = null) {
 
         // Request pairing code if number provided
         if (phoneNumber && !sock.authState.creds.registered) {
-            await delay(2000);
-            pairingCode = await sock.requestPairingCode(phoneNumber);
+            await delay(3000); // Wait for connection to initialize
+            try {
+                pairingCode = await sock.requestPairingCode(phoneNumber);
+                console.log("Pairing code generated:", pairingCode);
+            } catch (error) {
+                console.error("Error generating pairing code:", error);
+                throw error;
+            }
         }
 
         const connectionInfo = {
@@ -95,6 +119,20 @@ async function createWhatsAppConnection(sessionId, phoneNumber = null) {
     } catch (error) {
         console.error('Connection error:', error);
         throw error;
+    }
+}
+
+// Cleanup session
+function cleanupSession(sessionId) {
+    try {
+        const sessionPath = `./sessions/${sessionId}`;
+        if (fs.existsSync(sessionPath)) {
+            fs.rmSync(sessionPath, { recursive: true, force: true });
+            console.log('Cleaned up session:', sessionId);
+        }
+        activeConnections.delete(sessionId);
+    } catch (error) {
+        console.error('Cleanup error:', error);
     }
 }
 
@@ -119,10 +157,15 @@ app.get("/code", async (req, res) => {
     const sessionId = `pair-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     try {
+        console.log("Generating pairing code for:", cleanNumber);
         const connection = await createWhatsAppConnection(sessionId, cleanNumber);
         
-        // Wait for pairing code
-        await delay(3000);
+        // Wait for pairing code to generate
+        let attempts = 0;
+        while (!connection.pairingCode && attempts < 10) {
+            await delay(1000);
+            attempts++;
+        }
         
         if (connection.pairingCode) {
             res.json({ 
@@ -132,12 +175,13 @@ app.get("/code", async (req, res) => {
                 message: "Enter this code in WhatsApp within 20 seconds"
             });
         } else {
-            res.status(500).json({ error: "Failed to generate pairing code" });
+            throw new Error("No pairing code generated");
         }
         
     } catch (error) {
         console.error("Pairing code error:", error);
-        res.status(500).json({ error: "Failed to generate code" });
+        cleanupSession(sessionId);
+        res.status(500).json({ error: "Failed to generate pairing code: " + error.message });
     }
 });
 
@@ -146,16 +190,18 @@ app.get("/qr", async (req, res) => {
     const sessionId = `qr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     try {
+        console.log("Generating QR code");
         const connection = await createWhatsAppConnection(sessionId);
         
-        // Wait for QR code
+        // Wait for QR code to generate
         let qrCode = null;
         let attempts = 0;
         
-        while (!qrCode && attempts < 10) {
-            await delay(500);
+        while (!qrCode && attempts < 15) {
+            await delay(1000);
             qrCode = activeConnections.get(sessionId)?.qr;
             attempts++;
+            console.log("Waiting for QR code, attempt:", attempts);
         }
         
         if (qrCode) {
@@ -166,12 +212,13 @@ app.get("/qr", async (req, res) => {
                 message: "Scan this QR code within 20 seconds"
             });
         } else {
-            res.status(500).json({ error: "Failed to generate QR code" });
+            throw new Error("No QR code generated");
         }
         
     } catch (error) {
         console.error("QR code error:", error);
-        res.status(500).json({ error: "Failed to generate QR code" });
+        cleanupSession(sessionId);
+        res.status(500).json({ error: "Failed to generate QR code: " + error.message });
     }
 });
 
@@ -192,23 +239,41 @@ app.get("/status/:sessionId", (req, res) => {
     }
 });
 
+// Cleanup endpoint
+app.delete("/cleanup/:sessionId", (req, res) => {
+    const { sessionId } = req.params;
+    cleanupSession(sessionId);
+    res.json({ success: true, message: "Session cleaned up" });
+});
+
 // Cleanup old sessions every minute
 setInterval(() => {
     const now = Date.now();
     for (const [sessionId, connection] of activeConnections.entries()) {
         if (now - connection.createdAt > 300000) { // 5 minutes
-            try {
-                connection.sock.ws.close();
-                sessionManager.cleanupSession(sessionId);
-                activeConnections.delete(sessionId);
-            } catch (error) {
-                console.error("Cleanup error:", error);
-            }
+            console.log("Cleaning up old session:", sessionId);
+            cleanupSession(sessionId);
         }
     }
 }, 60000);
 
+// Error handling middleware
+app.use((error, req, res, next) => {
+    console.error("Unhandled error:", error);
+    res.status(500).json({ error: "Internal server error" });
+});
+
 app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`📱 WhatsApp Linking Portal ready`);
+});
+
+// Handle graceful shutdown
+process.on('SIGINT', () => {
+    console.log('Shutting down gracefully...');
+    // Cleanup all sessions
+    for (const [sessionId] of activeConnections.entries()) {
+        cleanupSession(sessionId);
+    }
+    process.exit(0);
 });
