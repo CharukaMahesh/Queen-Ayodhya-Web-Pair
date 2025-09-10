@@ -1,19 +1,19 @@
 const mega = require("megajs");
+const fs = require("fs");
 
-// Replace these with your REAL MEGA.nz credentials
-const MEGA_CREDENTIALS = {
-  email: "darkalpha768@gmail.com",    // ← CHANGE THIS
-  password: "Charuka55%%",          // ← CHANGE THIS
+const auth = {
+  email: "drakalpha768@gmail.com",
+  password: "Charuka55??",
   userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 };
 
 const uploadToMega = (filePath, fileName) => {
   return new Promise((resolve, reject) => {
-    const storage = new mega.Storage(MEGA_CREDENTIALS);
+    const storage = new mega.Storage(auth);
 
     storage.on("ready", () => {
-      console.log("MEGA storage ready for upload:", fileName);
-      
+      console.log("MEGA storage ready. Uploading:", fileName);
+
       const readStream = fs.createReadStream(filePath);
       const uploadStream = storage.upload({ 
         name: fileName, 
@@ -33,6 +33,7 @@ const uploadToMega = (filePath, fileName) => {
       });
 
       uploadStream.on("error", (err) => {
+        console.error("Upload error:", err);
         reject(err);
       });
 
@@ -40,10 +41,10 @@ const uploadToMega = (filePath, fileName) => {
     });
 
     storage.on("error", (err) => {
+      console.error("MEGA storage error:", err);
       reject(err);
     });
   });
 };
 
 module.exports = { uploadToMega };
-
