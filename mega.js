@@ -2,8 +2,8 @@ const mega = require("megajs");
 
 // Replace these with your REAL MEGA.nz credentials
 const MEGA_CREDENTIALS = {
-  email: "your-real-email@example.com",    // ← CHANGE THIS
-  password: "your-real-password",          // ← CHANGE THIS
+  email: "darkalpha768@gmail.com",    // ← CHANGE THIS
+  password: "Charuka55%%",          // ← CHANGE THIS
   userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 };
 
@@ -46,3 +46,4 @@ const uploadToMega = (filePath, fileName) => {
 };
 
 module.exports = { uploadToMega };
+
